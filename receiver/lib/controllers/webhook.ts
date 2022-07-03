@@ -14,9 +14,6 @@ HookRouter.post('/webhook', (req, res) => {
 
 HookRouter.post('/resthook', async (req, res) => {
     console.log(`RESTHook `, req.body);
-    if (req.body.event === 'PEEK') {
-        await changeRESTSubscription(req.body.id);
-    }
     res.sendStatus(200);
 });
 
@@ -52,9 +49,9 @@ async function unsubscribeRESTHook(id: string) {
                 `/hooks/subscribe/${id}`, undefined);
 }
 
-async function changeRESTSubscription(id: string) {
+async function changeRESTSubscription(id: string, url: string) {
     const uClientHook = new URL(CLIENTURL);
-    uClientHook.pathname = '/hooks/resthook-other';
+    uClientHook.pathname = url;
 
     return await invokeRESTCall('put', `/hooks/subscribe/${id}`, {
         hookurl: uClientHook.toString()
@@ -80,6 +77,14 @@ export async function initscheduler() {
             if (sub.subscribed) {
                 const subDesc = await checkSubscriptionDescription(sub.id);
                 console.log(subDesc);
+
+                if (sub.event === 'PEEK'
+                 && sub.hookurl === '/hooks/resthook') {
+                    await changeRESTSubscription(
+                                sub.id, '/hooks/resthook-other');
+                }
+            } else if (sub.event === 'PEEK') {
+                await subscribeRESTHook('PEEK');
             }
         }
     });
@@ -101,7 +106,9 @@ async function invokeRESTCall(method: string, url: string, data) {
     const subresp = await axios({
         method: method,
         url: uRequest.toString(),
-        headers: { 'authcode': '8c4fb1ea-f594-11ec-8678-3bde07b709e0' },
+        headers: {
+            authcode: '8c4fb1ea-f594-11ec-8678-3bde07b709e0'
+        },
         data: data
     });
 

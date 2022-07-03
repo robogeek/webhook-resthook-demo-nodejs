@@ -4,6 +4,13 @@ import { reqFromClient, clientForReq, client } from '../clients';
 import { v4 as uuidv4} from 'uuid';
 import axios from 'axios';
 
+import {
+    subscription,
+    addSubscription, clientSubscription,
+    clientSubscriptionByID, deleteClientSubscription,
+    allSubscriptions
+} from '../subscriptions.js';
+
 export const HookRouter = express.Router();
 
 
@@ -39,7 +46,7 @@ HookRouter.post('/subscribe', reqFromClient, (req, res) => {
     } else {
         const subID = uuidv4();
         console.log(`Subscribing ${client.clientID} to event ${req.body.name} with ${subID}`);
-        subscriptions.push(<subscription>{
+        addSubscription(<subscription>{
             id: subID,
             clientID: client.clientID,
             event: req.body.name,
@@ -78,71 +85,28 @@ HookRouter.delete('/subscribe/:id', reqFromClient, (req, res) => {
     });
 });
 
-export type subscription = {
-    id: string,
-    clientID: string;
-    event: string;
-    hookurl: string;
-}
-
-export let subscriptions: Array<subscription> = [];
-
 export const eventNames = [ 'OPEN', 'CLOSE', 'PEEK' ];
-
-function deleteClientSubscription(client: client, id: string): void {
-    console.log(`Deleting client subscription `)
-    subscriptions = subscriptions.filter(sub => {
-        return sub.id !== id;
-    });
-}
-
-function clientSubscription(client: client, nm: string): subscription {
-    for (const sub of subscriptions) {
-        if (sub.clientID === client.clientID) {
-            if (sub.event === nm) {
-                return sub;
-            }
-        }
-    }
-    return undefined;
-}
-
-function clientSubscriptionByID(client: client, id: string): subscription {
-    for (const sub of subscriptions) {
-        if (sub.clientID === client.clientID) {
-            if (sub.id === id) {
-                return sub;
-            }
-        }
-    }
-    return undefined;
-}
-
-export function eventSubscriptions(nm: string): Array<subscription> {
-    const ret: Array<subscription> = [];
-    for (const sub of subscriptions) {
-        if (sub.event === nm) ret.push(sub);
-    }
-    return ret;
-}
 
 let count = 0;
 
 export async function sendRESTHookNotifications(eventName: string): Promise<void> {
 
-    const subs = eventSubscriptions(eventName);
-    for (const sub of subs) {
-        const response = await axios({
-            method: 'post',
-            url: sub.hookurl,
-            data: {
+    for (const sub of allSubscriptions()) {
+        if (sub.event === eventName) {
+            const response = await sendRESTHook(sub, {
                 id: sub.id,
                 event: sub.event,
                 count: count++
-            }
-        });
-        console.log(`RESTHook ${eventName} status ${response.status} client ${sub.clientID} count=${count}`);
+            });
+            console.log(`RESTHook ${eventName} status ${response.status} client ${sub.clientID} count=${count}`);
+        }
     }
-    // await this.poll();
 }
 
+export async function sendRESTHook(sub: subscription, data) {
+    return axios({
+        method: 'post',
+        url: sub.hookurl,
+        data: data
+    });
+}

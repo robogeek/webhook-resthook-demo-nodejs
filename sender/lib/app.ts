@@ -50,7 +50,10 @@ import { addClient } from './clients.js';
 addClient('8c4fb1ea-f594-11ec-8678-3bde07b709e0', 'TestClient');
 
 import { register as registerWebhooks } from './webhooks.js';
-registerWebhooks();
+
+const uWebHook = new URL(process.env['CLIENTURL']);
+uWebHook.pathname = '/hooks/webhook';
+registerWebhooks(uWebHook.toString());
 
 // Abstracted from https://nodejs.org/api/errors.html
 interface SystemError {

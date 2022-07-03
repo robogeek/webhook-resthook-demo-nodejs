@@ -32,7 +32,7 @@ export const isClient = (id: string): boolean => {
     return typeof c !== 'undefined' && c !== null;
 };
 
-export const clientForReq = (req) => {
+export const clientForReq = (req): client => {
     const authcode = req.headers['authcode'];
     return findClient(authcode);
 }
