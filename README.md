@@ -31,9 +31,9 @@ The client service has five API's it can call:
 
 This repository contains two web services written in TypeScript, and running on top of ExpressJS on Node.js.
 
-The `client` directory contains a client service that handles some WebHook and REST Hook subscriptions.
+The `receiver` directory contains a client service that handles some WebHook and REST Hook subscriptions.
 
-The `service` directory contains a service that distributes events with both the WebHook and REST Hook model.
+The `sender` directory contains a service that distributes events with both the WebHook and REST Hook model.
 
 In both:
 
